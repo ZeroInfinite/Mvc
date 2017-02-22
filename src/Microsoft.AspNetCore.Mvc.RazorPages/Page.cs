@@ -2,13 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text.Encodings.Web;
-using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Razor;
-using Microsoft.AspNetCore.Mvc.Razor.Internal;
 using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AspNetCore.Mvc.RazorPages
@@ -48,6 +45,12 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
                 _binder = value;
             }
         }
+
+        /// <summary>
+        /// Gets the <see cref="ITempDataDictionary"/> from the <see cref="PageContext"/>.
+        /// </summary>
+        /// <remarks>Returns null if <see cref="PageContext"/> is null.</remarks>
+        public ITempDataDictionary TempData => PageContext?.TempData;
 
         /// <inheritdoc />
         public override void EnsureRenderedBodyOrSections()
@@ -90,5 +93,14 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
             }
         }
 
+        protected IActionResult Redirect(string url)
+        {
+            return new RedirectResult(url);
+        }
+
+        protected IActionResult View()
+        {
+            return new PageViewResult(this);
+        }
     }
 }
