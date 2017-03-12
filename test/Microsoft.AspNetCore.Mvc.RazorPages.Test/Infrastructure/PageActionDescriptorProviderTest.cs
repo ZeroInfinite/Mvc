@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Razor.Internal;
+using Microsoft.AspNetCore.Mvc.RazorPages.Internal;
 using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.AspNetCore.Razor.Evolution;
 using Microsoft.Extensions.Options;
@@ -30,7 +31,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -53,7 +54,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -75,12 +76,12 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             razorProject.Setup(p => p.EnumerateItems("/"))
                 .Returns(new[]
                 {
-                    GetProjectItem("/", "/Test.cshtml", $"@page Home {Environment.NewLine}<h1>Hello world</h1>"),
+                    GetProjectItem("/", "/Test.cshtml", $"@page \"Home\" {Environment.NewLine}<h1>Hello world</h1>"),
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -94,6 +95,75 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             Assert.Equal("Test/Home", descriptor.AttributeRouteInfo.Template);
         }
 
+        [Fact]
+        public void GetDescriptors_GeneratesRouteTemplate()
+        {
+            // Arrange
+            var razorProject = new Mock<RazorProject>(MockBehavior.Strict);
+            razorProject.Setup(p => p.EnumerateItems("/"))
+                .Returns(new[]
+                {
+                    GetProjectItem("/", "/base-path/Test.cshtml", $"@page \"Home\" {Environment.NewLine}<h1>Hello world</h1>"),
+                    GetProjectItem("/", "/base-path/Index.cshtml", $"@page {Environment.NewLine}"),
+                    GetProjectItem("/", "/base-path/Admin/Index.cshtml", $"@page{Environment.NewLine}"),
+                    GetProjectItem("/", "/base-path/Admin/User.cshtml", $"@page{Environment.NewLine}"),
+                });
+            var options = GetRazorPagesOptions();
+
+            var provider = new PageActionDescriptorProvider(
+                razorProject.Object,
+                GetAccessor<MvcOptions>(),
+                options);
+            var context = new ActionDescriptorProviderContext();
+
+            // Act
+            provider.OnProvidersExecuting(context);
+
+            // Assert
+            Assert.Collection(context.Results,
+                result => Assert.Equal("base-path/Test/Home", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("base-path/Index", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("base-path", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("base-path/Admin/Index", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("base-path/Admin", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("base-path/Admin/User", result.AttributeRouteInfo.Template));
+        }
+
+        [Fact]
+        public void GetDescriptors_UsesBasePathOption_WhenGeneratingRouteTemplate()
+        {
+            // Arrange
+            var razorProject = new Mock<RazorProject>(MockBehavior.Strict);
+            razorProject.Setup(p => p.EnumerateItems("/base-path"))
+                .Returns(new[]
+                {
+                    GetProjectItem("/base-path", "/Test.cshtml", $"@page \"Home\" {Environment.NewLine}<h1>Hello world</h1>"),
+                    GetProjectItem("/base-path", "/Index.cshtml", $"@page {Environment.NewLine}"),
+                    GetProjectItem("/base-path", "/Admin/Index.cshtml", $"@page{Environment.NewLine}"),
+                    GetProjectItem("/base-path", "/Admin/User.cshtml", $"@page{Environment.NewLine}"),
+                });
+            var options = GetRazorPagesOptions();
+            options.Value.RootDirectory = "/base-path";
+            var provider = new PageActionDescriptorProvider(
+                razorProject.Object,
+                GetAccessor<MvcOptions>(),
+                options);
+            var context = new ActionDescriptorProviderContext();
+
+            // Act
+            provider.OnProvidersExecuting(context);
+
+            // Assert
+            Assert.Collection(context.Results,
+                result => Assert.Equal("Test/Home", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("Index", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("Admin/Index", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("Admin", result.AttributeRouteInfo.Template),
+                result => Assert.Equal("Admin/User", result.AttributeRouteInfo.Template));
+
+        }
+
         [Theory]
         [InlineData("/Path1")]
         [InlineData("~/Path1")]
@@ -104,12 +174,12 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             razorProject.Setup(p => p.EnumerateItems("/"))
                 .Returns(new[]
                 {
-                    GetProjectItem("/", "/Test.cshtml", $"@page {template} {Environment.NewLine}<h1>Hello world</h1>"),
+                    GetProjectItem("/", "/Test.cshtml", $"@page \"{template}\" {Environment.NewLine}<h1>Hello world</h1>"),
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act and Assert
@@ -133,7 +203,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -165,12 +235,12 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             razorProject.Setup(p => p.EnumerateItems("/"))
                 .Returns(new[]
                 {
-                    GetProjectItem("", "/Catalog/Details/Index.cshtml", $"@page {{id:int?}} {Environment.NewLine}"),
+                    GetProjectItem("", "/Catalog/Details/Index.cshtml", $"@page \"{{id:int?}}\" {Environment.NewLine}"),
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor<MvcOptions>(),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -208,7 +278,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor(options),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -231,7 +301,6 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
         }
 
-
         [Fact]
         public void GetDescriptors_AddsGlobalFilters()
         {
@@ -250,7 +319,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor(options),
-                GetAccessor<RazorPagesOptions>());
+                GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -291,14 +360,14 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var localFilter = Mock.Of<IFilterMetadata>();
             var options = new MvcOptions();
             options.Filters.Add(globalFilter);
-            var convention = new Mock<IPageModelConvention>();
+            var convention = new Mock<IPageApplicationModelConvention>();
             convention.Setup(c => c.Apply(It.IsAny<PageApplicationModel>()))
                 .Callback((PageApplicationModel model) =>
                 {
                     model.Filters.Add(localFilter);
                 });
-            var razorOptions = new RazorPagesOptions();
-            razorOptions.Conventions.Add(convention.Object);
+            var razorOptions = GetRazorPagesOptions();
+            razorOptions.Value.Conventions.Add(convention.Object);
 
             var razorProject = new Mock<RazorProject>();
             razorProject.Setup(p => p.EnumerateItems("/"))
@@ -309,7 +378,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
                 GetAccessor(options),
-                GetAccessor(razorOptions));
+                razorOptions);
             var context = new ActionDescriptorProviderContext();
 
             // Act
@@ -347,6 +416,11 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             var accessor = new Mock<IOptions<TOptions>>();
             accessor.SetupGet(a => a.Value).Returns(options ?? new TOptions());
             return accessor.Object;
+        }
+
+        private static IOptions<RazorPagesOptions> GetRazorPagesOptions()
+        {
+            return new OptionsManager<RazorPagesOptions>(new[] { new RazorPagesOptionsSetup() });
         }
 
         private static RazorProjectItem GetProjectItem(string basePath, string path, string content)

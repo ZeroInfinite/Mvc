@@ -2,13 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text.Encodings.Web;
-using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
-using Microsoft.AspNetCore.Mvc.Razor.Internal;
 using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AspNetCore.Mvc.RazorPages
@@ -18,14 +16,16 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
     /// </summary>
     public abstract class Page : RazorPageBase, IRazorPage
     {
-        private IUrlHelper _urlHelper;
         private PageArgumentBinder _binder;
 
         /// <summary>
-        /// The <see cref="PageContext"/>.
+        /// The <see cref="RazorPages.PageContext"/>.
         /// </summary>
         public PageContext PageContext { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="PageArgumentBinder"/>.
+        /// </summary>
         public PageArgumentBinder Binder
         {
             get
@@ -49,12 +49,24 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
             }
         }
 
+        /// <summary>
+        /// Gets the <see cref="ModelStateDictionary"/>.
+        /// </summary>
+        public ModelStateDictionary ModelState => PageContext?.ModelState;
+
+        /// <summary>
+        /// Gets the <see cref="ITempDataDictionary"/> from the <see cref="PageContext"/>.
+        /// </summary>
+        /// <remarks>Returns null if <see cref="PageContext"/> is null.</remarks>
+        public ITempDataDictionary TempData => PageContext?.TempData;
+
         /// <inheritdoc />
         public override void EnsureRenderedBodyOrSections()
         {
             throw new NotSupportedException();
         }
 
+        /// <inheritdoc />
         public override void BeginContext(int position, int length, bool isLiteral)
         {
             const string BeginContextEvent = "Microsoft.AspNetCore.Mvc.Razor.BeginInstrumentationContext";
@@ -74,6 +86,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
             }
         }
 
+        /// <inheritdoc />
         public override void EndContext()
         {
             const string EndContextEvent = "Microsoft.AspNetCore.Mvc.Razor.EndInstrumentationContext";
@@ -90,5 +103,32 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
             }
         }
 
+        /// <summary>
+        /// Creates a <see cref="RedirectResult"/> object that redirects to the specified <paramref name="url"/>.
+        /// </summary>
+        /// <param name="url">The URL to redirect to.</param>
+        /// <returns>The created <see cref="RedirectResult"/> for the response.</returns>
+        protected RedirectResult Redirect(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException(Resources.ArgumentCannotBeNullOrEmpty, nameof(url));
+            }
+
+            return new RedirectResult(url);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="PageViewResult"/> object that renders this page as a view to the response.
+        /// </summary>
+        /// <returns>The created <see cref="PageViewResult"/> object for the response.</returns>
+        /// <remarks>
+        /// Returning a <see cref="PageViewResult"/> from a page handler method is equivalent to returning void.
+        /// The view associated with the page will be executed.
+        /// </remarks>
+        protected PageViewResult View()
+        {
+            return new PageViewResult(this);
+        }
     }
 }

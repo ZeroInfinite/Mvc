@@ -74,6 +74,54 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages
             return string.Format(CultureInfo.CurrentCulture, GetString("PageViewResult_ContextIsInvalid"), p0, p1);
         }
 
+        /// <summary>
+        /// Value cannot be null or empty.
+        /// </summary>
+        internal static string ArgumentCannotBeNullOrEmpty
+        {
+            get { return GetString("ArgumentCannotBeNullOrEmpty"); }
+        }
+
+        /// <summary>
+        /// Value cannot be null or empty.
+        /// </summary>
+        internal static string FormatArgumentCannotBeNullOrEmpty()
+        {
+            return GetString("ArgumentCannotBeNullOrEmpty");
+        }
+
+        /// <summary>
+        /// Unsupported handler method return type '{0}'.
+        /// </summary>
+        internal static string UnsupportedHandlerMethodType
+        {
+            get { return GetString("UnsupportedHandlerMethodType"); }
+        }
+
+        /// <summary>
+        /// Unsupported handler method return type '{0}'.
+        /// </summary>
+        internal static string FormatUnsupportedHandlerMethodType(object p0)
+        {
+            return string.Format(CultureInfo.CurrentCulture, GetString("UnsupportedHandlerMethodType"), p0);
+        }
+
+        /// <summary>
+        /// Path must be an application relative path that starts with a forward slash '/'.
+        /// </summary>
+        internal static string PathMustBeAnAppRelativePath
+        {
+            get { return GetString("PathMustBeAnAppRelativePath"); }
+        }
+
+        /// <summary>
+        /// Path must be an application relative path that starts with a forward slash '/'.
+        /// </summary>
+        internal static string FormatPathMustBeAnAppRelativePath()
+        {
+            return GetString("PathMustBeAnAppRelativePath");
+        }
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);

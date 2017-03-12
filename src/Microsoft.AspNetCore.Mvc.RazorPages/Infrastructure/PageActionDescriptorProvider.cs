@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.AspNetCore.Razor.Evolution;
 using Microsoft.Extensions.Options;
 
@@ -34,7 +33,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
 
         public void OnProvidersExecuting(ActionDescriptorProviderContext context)
         {
-            foreach (var item in _project.EnumerateItems("/"))
+            foreach (var item in _project.EnumerateItems(_pagesOptions.RootDirectory))
             {
                 if (item.Filename.StartsWith("_"))
                 {
@@ -43,7 +42,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 }
 
                 string template;
-                if (!PageDirectiveFeature.TryGetRouteTemplate(item, out template))
+                if (!PageDirectiveFeature.TryGetPageDirective(item, out template))
                 {
                     // .cshtml pages without @page are not RazorPages.
                     continue;
@@ -67,7 +66,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
         private void AddActionDescriptors(IList<ActionDescriptor> actions, RazorProjectItem item, string template)
         {
             var model = new PageApplicationModel(item.CombinedPath, item.PathWithoutExtension);
-            var routePrefix = item.BasePath == "/" ? item.PathWithoutExtension : item.BasePath + item.PathWithoutExtension;
+            var routePrefix = item.PathWithoutExtension;
             model.Selectors.Add(CreateSelectorModel(routePrefix, template));
 
             if (string.Equals(IndexFileName, item.Filename, StringComparison.OrdinalIgnoreCase))
@@ -84,9 +83,6 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 }
                 model.Selectors.Add(CreateSelectorModel(parentDirectoryPath, template));
             }
-
-            model.Filters.Add(new SaveTempDataPropertyFilter()); // Support for [TempData] on properties
-            model.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()); // Always require an antiforgery token on post
 
             for (var i = 0; i < _pagesOptions.Conventions.Count; i++)
             {
